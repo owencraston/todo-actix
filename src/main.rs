@@ -9,7 +9,7 @@ use dotenv::dotenv;
 
 async fn status() -> impl Responder {
     web::HttpResponse::Ok()
-        .json(Status {status: "Ok".to_string()})
+        .json(Status {status: "Up".to_string()})
 }
 
 #[actix_rt::main]
