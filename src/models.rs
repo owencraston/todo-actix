@@ -21,3 +21,8 @@ pub struct TodoList {
     pub id: i32,
     pub title: String,
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct CreateTodoList {
+    pub title: String,
+}
