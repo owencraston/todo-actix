@@ -5,6 +5,7 @@ mod db;
 mod errors;
 
 use crate::config::Config;
+use crate::models::AppState;
 use actix_web::{HttpServer, App, web};
 use std::io;
 use dotenv::dotenv;
@@ -34,7 +35,10 @@ async fn main() -> io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .data(pool.clone())
+            .data(AppState {
+                pool: pool.clone(),
+                logger: log.clone(),
+            })
             .route("/", web::get().to(status))
             .route("/todos{_:/?}", web::get().to(get_todos))
             .route("/todos{_:/?}", web::post().to(create_todo))
