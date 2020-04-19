@@ -39,6 +39,21 @@ pub async fn get_todos(state: web::Data<AppState>) -> Result<impl Responder, App
         .map_err(log_error(log))
 }
 
+pub async fn get_todo(list_id: web::Path<(i32,)>, state: web::Data<AppState>) -> Result<impl Responder, AppError> {
+    let sublog = state.logger.new(o!(
+        "handler" => "get_todo",
+        "list_id" => list_id.0
+    ));
+
+    let client: Client = get_client(state.pool.clone(), sublog.clone()).await?;
+
+    let result = db::get_todo(&client, list_id.0).await;
+
+    result
+        .map(|todo| HttpResponse::Ok().json(todo))
+        .map_err(log_error(sublog))
+}
+
 pub async fn get_items(state: web::Data<AppState>, path: web::Path<(i32,)>) -> Result<impl Responder, AppError> {
 
     let log = state.logger.new(o!("handler" => "get_items"));

@@ -2,6 +2,8 @@
 use actix_web::{error::ResponseError, http::StatusCode, HttpResponse};
 use std::fmt;
 use serde::Serialize;
+use deadpool_postgres::PoolError;
+use tokio_postgres::error::Error;
 
 #[derive(Debug)]
 pub enum AppErrorType {
@@ -34,6 +36,27 @@ impl AppError {
 
     pub fn db_error(error: impl ToString) -> AppError {
         AppError{message: None, cause: Some(error.to_string()), error_type: AppErrorType::DbError}
+    }
+}
+
+
+impl From<PoolError> for AppError {
+    fn from(error: PoolError) -> AppError {
+        AppError {
+            message: None, 
+            cause: Some(error.to_string()),
+            error_type: AppErrorType::DbError
+        }
+    }
+}
+
+impl From<Error> for AppError {
+    fn from(error: Error) -> AppError {
+        AppError {
+            message: None, 
+            cause: Some(error.to_string()),
+            error_type: AppErrorType::DbError
+        }
     }
 }
 
