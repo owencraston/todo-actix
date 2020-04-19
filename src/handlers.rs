@@ -1,7 +1,7 @@
 use crate::models::{Status, CreateTodoList, ResultResponse, AppState};
 use crate::db;
 use crate::errors::{AppError};
-use slog::{Logger, o, crit};
+use slog::{Logger, o, crit, error};
 
 use deadpool_postgres::{Pool, Client};
 use actix_web::{web, Responder, HttpResponse};
@@ -13,6 +13,14 @@ pub async fn get_client(pool: Pool, log: Logger) -> Result<Client, AppError> {
             crit!(sublog, "Error creating client");
             AppError::db_error(err)
         })
+}
+ 
+pub fn log_error(log: Logger) -> Box<dyn Fn(AppError) -> AppError> {
+   Box::new(move |err| {
+        let sublog = log.new(o!("cause" => err.to_string()));
+        error!(sublog, "{}", err.message());
+        err
+    })
 }
 
 pub async fn status() -> impl Responder {
@@ -28,6 +36,7 @@ pub async fn get_todos(state: web::Data<AppState>) -> Result<impl Responder, App
     
     let result = db::get_todos(&client).await;
     result.map(|todos| HttpResponse::Ok().json(todos))
+        .map_err(log_error(log))
 }
 
 pub async fn get_items(state: web::Data<AppState>, path: web::Path<(i32,)>) -> Result<impl Responder, AppError> {
@@ -39,6 +48,7 @@ pub async fn get_items(state: web::Data<AppState>, path: web::Path<(i32,)>) -> R
     let result = db::get_items(&client, path.0).await;
 
     result.map(|items| HttpResponse::Ok().json(items))
+        .map_err(log_error(log))
 }
 
 pub async fn create_todo(state: web::Data<AppState>, json: web::Json<CreateTodoList>) -> Result<impl Responder, AppError> {
@@ -50,6 +60,7 @@ pub async fn create_todo(state: web::Data<AppState>, json: web::Json<CreateTodoL
     let result = db::create_todo(&client, json.title.clone()).await;
 
     result.map(|todo| HttpResponse::Ok().json(todo))
+        .map_err(log_error(log))
 }
 
 pub async fn check_item(state: web::Data<AppState>, path: web::Path<(i32,i32)>) -> Result<impl Responder, AppError> {
@@ -61,4 +72,5 @@ pub async fn check_item(state: web::Data<AppState>, path: web::Path<(i32,i32)>) 
     let result = db::check_item(&client, path.0, path.1).await;
 
     result.map(|updated: bool| HttpResponse::Ok().json(ResultResponse{success: updated}))
+        .map_err(log_error(log))
 }
